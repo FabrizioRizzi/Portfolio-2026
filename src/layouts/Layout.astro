@@ -1,22 +1,71 @@
 <!doctype html>
 <html lang="en">
-	<head>
-		<meta charset="UTF-8" />
-		<meta name="viewport" content="width=device-width" />
-		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<meta name="generator" content={Astro.generator} />
-		<title>Astro Basics</title>
-	</head>
-	<body>
-		<slot />
-	</body>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="generator" content={Astro.generator} />
+    <title>Fabrizio's Portfolio</title>
+    <meta name="description" content="Interactive terminal-style portfolio" />
+  </head>
+  <body>
+    <div class="terminal-window">
+      <slot />
+    </div>
+  </body>
 </html>
 
-<style>
-	html,
-	body {
-		margin: 0;
-		width: 100%;
-		height: 100%;
-	}
+<style is:global>
+  :root {
+    --terminal-bg: #000000;
+    --terminal-text: #00ff00;
+    --terminal-chrome: #1a1a1a;
+    --terminal-border: #333333;
+    --terminal-prompt: #00ff00;
+    --terminal-error: #ff0000;
+    --terminal-link: #00ffff;
+    --terminal-highlight: #ffff00;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  html,
+  body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #0a0a0a;
+    font-family: "Courier New", Courier, monospace;
+  }
+
+  body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+
+  @media (max-width: 768px) {
+    body {
+      padding: 10px;
+    }
+  }
+
+  .terminal-window {
+    width: 100%;
+    max-width: 900px;
+    height: 90vh;
+    max-height: 700px;
+    background: var(--terminal-chrome);
+    border-radius: 8px;
+    box-shadow: 0 20px 60px rgba(0, 255, 0, 0.1);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border: 1px solid var(--terminal-border);
+  }
 </style>

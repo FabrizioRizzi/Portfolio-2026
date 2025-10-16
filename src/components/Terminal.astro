@@ -1,0 +1,413 @@
+<div class="terminal-header">
+  <div class="window-buttons">
+    <span class="btn btn-close"></span>
+    <span class="btn btn-minimize"></span>
+    <span class="btn btn-maximize"></span>
+  </div>
+  <div class="terminal-title">guest@portfolio:~</div>
+</div>
+<div class="terminal-body">
+  <div id="terminal-output" class="terminal-output"></div>
+  <div class="terminal-input-line">
+    <span class="prompt">guest@portfolio:~$</span>
+    <input
+      type="text"
+      id="terminal-input"
+      class="terminal-input"
+      autocomplete="off"
+      autocorrect="off"
+      autocapitalize="off"
+      spellcheck="false"
+      autofocus
+    />
+    <span class="cursor"></span>
+  </div>
+</div>
+
+<style>
+  .terminal-header {
+    background: var(--terminal-chrome);
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    border-bottom: 1px solid var(--terminal-border);
+    position: relative;
+  }
+
+  .window-buttons {
+    display: flex;
+    gap: 8px;
+    z-index: 2;
+  }
+
+  .btn {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    display: inline-block;
+  }
+
+  .btn-close {
+    background: #ff5f56;
+  }
+
+  .btn-minimize {
+    background: #ffbd2e;
+  }
+
+  .btn-maximize {
+    background: #27c93f;
+  }
+
+  .terminal-title {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    color: var(--terminal-text);
+    font-size: 14px;
+    opacity: 0.8;
+  }
+
+  .terminal-body {
+    flex: 1;
+    background: var(--terminal-bg);
+    padding: 20px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    color: var(--terminal-text);
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  .terminal-output {
+    flex: 1;
+    overflow-y: auto;
+    margin-bottom: 10px;
+  }
+
+  /* Global styles for dynamically created elements */
+  :global(.output-line) {
+    margin: 0;
+    padding: 0;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    font-family: inherit;
+    color: inherit;
+  }
+
+  :global(.output-line.welcome-banner) {
+    color: var(--terminal-highlight);
+    line-height: 1.2;
+    font-size: 14px;
+  }
+
+  :global(.output-line.error) {
+    color: var(--terminal-error);
+  }
+
+  :global(.command-line) {
+    margin: 10px 0 5px 0;
+  }
+
+  :global(.command-prompt) {
+    color: var(--terminal-prompt);
+  }
+
+  :global(.command-text) {
+    color: var(--terminal-highlight);
+    margin-left: 8px;
+  }
+
+  .terminal-input-line {
+    display: flex;
+    align-items: center;
+    margin-top: auto;
+    position: relative;
+  }
+
+  .prompt {
+    color: var(--terminal-prompt);
+    margin-right: 8px;
+    white-space: nowrap;
+  }
+
+  .terminal-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--terminal-text);
+    font-family: inherit;
+    font-size: inherit;
+    caret-color: transparent;
+  }
+
+  .cursor {
+    position: absolute;
+    width: 8px;
+    height: 18px;
+    background: var(--terminal-text);
+    animation: blink 1s infinite;
+    pointer-events: none;
+  }
+
+  @keyframes blink {
+    0%,
+    49% {
+      opacity: 1;
+    }
+    50%,
+    100% {
+      opacity: 0;
+    }
+  }
+
+  /* Scrollbar styles */
+  .terminal-body::-webkit-scrollbar,
+  .terminal-output::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  .terminal-body::-webkit-scrollbar-track,
+  .terminal-output::-webkit-scrollbar-track {
+    background: var(--terminal-bg);
+  }
+
+  .terminal-body::-webkit-scrollbar-thumb,
+  .terminal-output::-webkit-scrollbar-thumb {
+    background: var(--terminal-border);
+    border-radius: 4px;
+  }
+
+  .terminal-body::-webkit-scrollbar-thumb:hover,
+  .terminal-output::-webkit-scrollbar-thumb:hover {
+    background: #555;
+  }
+
+  /* Mobile responsive */
+  @media (max-width: 768px) {
+    .terminal-window {
+      max-height: none;
+      height: 95vh;
+      border-radius: 0;
+    }
+
+    .terminal-body {
+      padding: 15px;
+      font-size: 12px;
+    }
+
+    :global(.output-line.welcome-banner) {
+      font-size: 11px;
+      line-height: 1.1;
+    }
+
+    .terminal-title {
+      font-size: 12px;
+    }
+
+    .btn {
+      width: 10px;
+      height: 10px;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .terminal-body {
+      padding: 10px;
+      font-size: 11px;
+    }
+
+    :global(.output-line.welcome-banner) {
+      font-size: 10px;
+      line-height: 1.1;
+    }
+
+    .terminal-header {
+      padding: 10px 12px;
+    }
+
+    .prompt {
+      font-size: 11px;
+    }
+  }
+
+  /* Very small screens */
+  @media (max-width: 360px) {
+    .terminal-body {
+      padding: 8px;
+      font-size: 10px;
+    }
+
+    :global(.output-line.welcome-banner) {
+      font-size: 9px;
+      line-height: 1;
+    }
+  }
+</style>
+
+<script>
+  import {
+    executeCommand,
+    getCommandSuggestion,
+    getWelcomeMessage,
+  } from "../utils/commands";
+
+  // Terminal state
+  let commandHistory: string[] = [];
+  let historyIndex = -1;
+  let currentInput = "";
+  let currentWidth = window.innerWidth;
+
+  // DOM elements
+  const input = document.getElementById("terminal-input") as HTMLInputElement;
+  const output = document.getElementById("terminal-output") as HTMLDivElement;
+  const cursor = document.querySelector(".cursor") as HTMLElement;
+  const terminalBody = document.querySelector(".terminal-body") as HTMLElement;
+
+  function displayWelcomeMessage() {
+    const welcomeMessage = getWelcomeMessage(window.innerWidth);
+    output.innerHTML = `<pre class="output-line welcome-banner">${welcomeMessage}</pre>`;
+  }
+
+  displayWelcomeMessage();
+
+  window.addEventListener("resize", () => {
+    const newWidth = window.innerWidth;
+    const oldBreakpoint =
+      currentWidth < 480 ? "mobile" : currentWidth < 768 ? "small" : "large";
+    const newBreakpoint =
+      newWidth < 480 ? "mobile" : newWidth < 768 ? "small" : "large";
+
+    if (oldBreakpoint !== newBreakpoint) {
+      const outputLines = Array.from(output.children).slice(1);
+      displayWelcomeMessage();
+      updateCursorPosition();
+      outputLines.forEach((line) => output.appendChild(line));
+      currentWidth = newWidth;
+    }
+  });
+
+  // Focus input on click anywhere in terminal
+  terminalBody.addEventListener("click", () => {
+    input.focus();
+  });
+
+  function scrollToBottom() {
+    requestAnimationFrame(() => {
+      terminalBody.scrollTop = terminalBody.scrollHeight;
+      output.scrollTop = output.scrollHeight;
+    });
+  }
+
+  function updateCursorPosition() {
+    const inputRect = input.getBoundingClientRect();
+    const prompt = document.querySelector(".prompt") as HTMLElement;
+    const promptRect = prompt.getBoundingClientRect();
+    const canvas = document.createElement("canvas");
+    const context = canvas.getContext("2d");
+    if (context) {
+      context.font = window.getComputedStyle(input).font;
+      const textWidth = context.measureText(input.value).width;
+      cursor.style.left = `${promptRect.width + textWidth + 8}px`;
+    }
+  }
+
+  function addOutput(content: string, isError: boolean = false) {
+    if (content === "__CLEAR__") {
+      displayWelcomeMessage();
+      return;
+    }
+
+    const pre = document.createElement("pre");
+    pre.className = `output-line${isError ? " error" : ""}`;
+    pre.textContent = content;
+    output.appendChild(pre);
+
+    // Scroll to bottom
+    scrollToBottom();
+  }
+
+  // Add command line to output
+  function addCommandLine(command: string) {
+    const div = document.createElement("div");
+    div.className = "command-line";
+    div.innerHTML = `<span class="command-prompt">guest@portfolio:~$</span><span class="command-text">${command}</span>`;
+    output.appendChild(div);
+
+    // Scroll to bottom after adding command
+    scrollToBottom();
+  }
+
+  function handleCommand(command: string) {
+    if (command.trim()) {
+      commandHistory.unshift(command);
+      historyIndex = -1;
+
+      addCommandLine(command);
+
+      const result = executeCommand(command, window.innerWidth);
+      if (result.content) {
+        addOutput(result.content, result.type === "error");
+      }
+    }
+
+    input.value = "";
+    currentInput = "";
+    updateCursorPosition();
+
+    scrollToBottom();
+  }
+
+  function handleTabCompletion() {
+    const partial = input.value.trim();
+    if (partial) {
+      const suggestion = getCommandSuggestion(partial);
+      if (suggestion) {
+        input.value = suggestion;
+        currentInput = suggestion;
+        updateCursorPosition();
+      }
+    }
+  }
+
+  input.addEventListener("input", () => {
+    updateCursorPosition();
+  });
+
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleCommand(input.value);
+    } else if (e.key === "Tab") {
+      e.preventDefault();
+      handleTabCompletion();
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      if (historyIndex < commandHistory.length - 1) {
+        if (historyIndex === -1) {
+          currentInput = input.value;
+        }
+        historyIndex++;
+        input.value = commandHistory[historyIndex];
+        updateCursorPosition();
+      }
+    } else if (e.key === "ArrowDown") {
+      e.preventDefault();
+      if (historyIndex > -1) {
+        historyIndex--;
+        input.value =
+          historyIndex === -1 ? currentInput : commandHistory[historyIndex];
+        updateCursorPosition();
+      }
+    } else if (e.key === "l" && e.ctrlKey) {
+      e.preventDefault();
+      handleCommand("clear");
+    }
+  });
+
+  updateCursorPosition();
+
+  input.focus();
+</script>
