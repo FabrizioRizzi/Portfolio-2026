@@ -40,11 +40,13 @@ export function getWelcomeMessage(width: number): string {
 Welcome to my portfolio!
 
 Type 'help' to see available commands.
+Press '?' for keyboard shortcuts.
 `;
 }
 
 const HELP_TEXT = `
-Available commands:
+Available Commands
+==================
 
   help        - Show this help message
   about       - Learn about me
@@ -53,9 +55,15 @@ Available commands:
   experience  - View my work experience
   contact     - Get my contact information
   clear       - Clear the terminal screen
+  ?           - Show keyboard shortcuts
   
-Tip: Use ↑ and ↓ arrow keys to navigate command history.
-     Use TAB to autocomplete commands.
+Navigation Tips
+===============
+  ↑ / ↓       - Navigate command history
+  Tab         - Autocomplete commands
+  Enter       - Execute command
+  Esc         - Clear current input
+  Ctrl + L    - Clear terminal screen
 `;
 
 const ABOUT_TEXT = `

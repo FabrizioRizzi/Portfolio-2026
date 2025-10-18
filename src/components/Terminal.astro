@@ -1,15 +1,69 @@
-<div class="terminal-header">
-  <div class="window-buttons">
-    <span class="btn btn-close"></span>
-    <span class="btn btn-minimize"></span>
-    <span class="btn btn-maximize"></span>
+---
+import { getWelcomeMessage } from "../utils/commands";
+
+// Server-render the welcome message for better FCP
+const welcomeMessage = getWelcomeMessage(900); // Default to desktop size
+---
+
+<header class="terminal-header" role="banner">
+  <h1 class="visually-hidden">Fabrizio's Interactive Terminal Portfolio</h1>
+  <div class="window-buttons" role="group" aria-label="Window controls">
+    <button
+      class="btn btn-close"
+      aria-label="Close window (decorative)"
+      tabindex="-1"
+      disabled></button>
+    <button
+      class="btn btn-minimize"
+      aria-label="Minimize window (decorative)"
+      tabindex="-1"
+      disabled></button>
+    <button
+      class="btn btn-maximize"
+      aria-label="Maximize window (decorative)"
+      tabindex="-1"
+      disabled></button>
   </div>
-  <div class="terminal-title">guest@portfolio:~</div>
-</div>
-<div class="terminal-body">
-  <div id="terminal-output" class="terminal-output"></div>
+  <div class="terminal-title" aria-label="Terminal session">
+    guest@portfolio:~
+  </div>
+</header>
+<div class="terminal-body" role="region" aria-label="Terminal interface">
+  <!-- Screen reader instructions -->
+  <div class="visually-hidden" id="terminal-instructions">
+    Interactive terminal portfolio. Type commands and press Enter to execute.
+    Use arrow up and down to navigate command history. Press Tab for command
+    autocompletion. Type 'help' for available commands. Press question mark for
+    keyboard shortcuts.
+  </div>
+
+  <!-- Status announcer for screen readers -->
+  <div
+    id="terminal-status"
+    class="visually-hidden"
+    role="status"
+    aria-live="polite"
+    aria-atomic="true"
+  >
+  </div>
+
+  <!-- Terminal output with log role -->
+  <div
+    id="terminal-output"
+    class="terminal-output"
+    role="log"
+    aria-live="polite"
+    aria-relevant="additions"
+    aria-label="Command output history"
+  >
+    <!-- Server-rendered welcome message for instant FCP -->
+    <pre class="output-line welcome-banner">{welcomeMessage}</pre>
+  </div>
+
   <div class="terminal-input-line">
-    <span class="prompt">guest@portfolio:~$</span>
+    <label for="terminal-input" class="prompt" id="terminal-prompt"
+      >guest@portfolio:~$</label
+    >
     <input
       type="text"
       id="terminal-input"
@@ -19,8 +73,11 @@
       autocapitalize="off"
       spellcheck="false"
       autofocus
+      aria-label="Terminal command input"
+      aria-describedby="terminal-instructions"
+      aria-invalid="false"
     />
-    <span class="cursor"></span>
+    <span class="cursor" aria-hidden="true"></span>
   </div>
 </div>
 
@@ -45,6 +102,10 @@
     height: 12px;
     border-radius: 50%;
     display: inline-block;
+    border: none;
+    padding: 0;
+    cursor: not-allowed;
+    opacity: 0.6;
   }
 
   .btn-close {
@@ -57,6 +118,11 @@
 
   .btn-maximize {
     background: #27c93f;
+  }
+
+  /* Hide button outline since they're decorative */
+  .btn:focus {
+    outline: none;
   }
 
   .terminal-title {
@@ -78,12 +144,16 @@
     color: var(--terminal-text);
     font-size: 14px;
     line-height: 1.5;
+    /* Performance optimization */
+    contain: layout style paint;
   }
 
   .terminal-output {
     flex: 1;
     overflow-y: auto;
     margin-bottom: 10px;
+    /* Improve rendering performance for dynamic content */
+    content-visibility: auto;
   }
 
   /* Global styles for dynamically created elements */
@@ -143,6 +213,15 @@
     caret-color: transparent;
   }
 
+  /* Remove focus outline for terminal input - cursor provides focus indication */
+  .terminal-input:focus {
+    outline: none;
+  }
+
+  .terminal-input:focus-visible {
+    outline: none;
+  }
+
   .cursor {
     position: absolute;
     width: 8px;
@@ -160,6 +239,14 @@
     50%,
     100% {
       opacity: 0;
+    }
+  }
+
+  /* Disable cursor blinking for reduced motion */
+  @media (prefers-reduced-motion: reduce) {
+    .cursor {
+      animation: none;
+      opacity: 1;
     }
   }
 
@@ -260,39 +347,51 @@
   let currentInput = "";
   let currentWidth = window.innerWidth;
 
-  // DOM elements
-  const input = document.getElementById("terminal-input") as HTMLInputElement;
-  const output = document.getElementById("terminal-output") as HTMLDivElement;
-  const cursor = document.querySelector(".cursor") as HTMLElement;
-  const terminalBody = document.querySelector(".terminal-body") as HTMLElement;
+  // DOM elements - defer initialization until DOMContentLoaded for faster FCP
+  let input: HTMLInputElement;
+  let output: HTMLDivElement;
+  let cursor: HTMLElement;
+  let terminalBody: HTMLElement;
+  let statusAnnouncer: HTMLDivElement;
+
+  function initializeDOMElements() {
+    input = document.getElementById("terminal-input") as HTMLInputElement;
+    output = document.getElementById("terminal-output") as HTMLDivElement;
+    cursor = document.querySelector(".cursor") as HTMLElement;
+    terminalBody = document.querySelector(".terminal-body") as HTMLElement;
+    statusAnnouncer = document.getElementById("terminal-status") as HTMLDivElement;
+  }
 
   function displayWelcomeMessage() {
     const welcomeMessage = getWelcomeMessage(window.innerWidth);
-    output.innerHTML = `<pre class="output-line welcome-banner">${welcomeMessage}</pre>`;
+    const existingWelcome = output.querySelector(".welcome-banner");
+    if (existingWelcome) {
+      existingWelcome.textContent = welcomeMessage;
+    } else {
+      output.innerHTML = `<pre class="output-line welcome-banner">${welcomeMessage}</pre>`;
+    }
   }
 
-  displayWelcomeMessage();
+  // Defer resize handler to reduce initial JS execution
+  let resizeTimeout: number;
+  function handleResize() {
+    clearTimeout(resizeTimeout);
+    resizeTimeout = window.setTimeout(() => {
+      const newWidth = window.innerWidth;
+      const oldBreakpoint =
+        currentWidth < 480 ? "mobile" : currentWidth < 768 ? "small" : "large";
+      const newBreakpoint =
+        newWidth < 480 ? "mobile" : newWidth < 768 ? "small" : "large";
 
-  window.addEventListener("resize", () => {
-    const newWidth = window.innerWidth;
-    const oldBreakpoint =
-      currentWidth < 480 ? "mobile" : currentWidth < 768 ? "small" : "large";
-    const newBreakpoint =
-      newWidth < 480 ? "mobile" : newWidth < 768 ? "small" : "large";
-
-    if (oldBreakpoint !== newBreakpoint) {
-      const outputLines = Array.from(output.children).slice(1);
-      displayWelcomeMessage();
-      updateCursorPosition();
-      outputLines.forEach((line) => output.appendChild(line));
-      currentWidth = newWidth;
-    }
-  });
-
-  // Focus input on click anywhere in terminal
-  terminalBody.addEventListener("click", () => {
-    input.focus();
-  });
+      if (oldBreakpoint !== newBreakpoint) {
+        const outputLines = Array.from(output.children).slice(1);
+        displayWelcomeMessage();
+        updateCursorPosition();
+        outputLines.forEach((line) => output.appendChild(line));
+        currentWidth = newWidth;
+      }
+    }, 150); // Debounce resize events
+  }
 
   function scrollToBottom() {
     requestAnimationFrame(() => {
@@ -314,9 +413,28 @@
     }
   }
 
+  // Announce to screen readers
+  function announceToScreenReader(
+    message: string,
+    priority: "polite" | "assertive" = "polite"
+  ) {
+    if (statusAnnouncer) {
+      statusAnnouncer.setAttribute("aria-live", priority);
+      statusAnnouncer.textContent = message;
+      // Clear after announcement
+      setTimeout(() => {
+        statusAnnouncer.textContent = "";
+      }, 1000);
+    }
+  }
+
   function addOutput(content: string, isError: boolean = false) {
     if (content === "__CLEAR__") {
-      displayWelcomeMessage();
+      // Clear all output and show only welcome message
+      const welcomeMessage = getWelcomeMessage(window.innerWidth);
+      output.innerHTML = `<pre class="output-line welcome-banner">${welcomeMessage}</pre>`;
+      announceToScreenReader("Terminal cleared");
+      scrollToBottom();
       return;
     }
 
@@ -324,6 +442,11 @@
     pre.className = `output-line${isError ? " error" : ""}`;
     pre.textContent = content;
     output.appendChild(pre);
+
+    // Announce to screen readers
+    if (isError) {
+      announceToScreenReader(`Error: ${content.split("\n")[0]}`, "assertive");
+    }
 
     // Scroll to bottom
     scrollToBottom();
@@ -342,6 +465,15 @@
 
   function handleCommand(command: string) {
     if (command.trim()) {
+      // Handle special keyboard shortcuts help
+      if (command.trim() === "?") {
+        showKeyboardShortcuts();
+        input.value = "";
+        currentInput = "";
+        updateCursorPosition();
+        return;
+      }
+
       commandHistory.unshift(command);
       historyIndex = -1;
 
@@ -350,6 +482,16 @@
       const result = executeCommand(command, window.innerWidth);
       if (result.content) {
         addOutput(result.content, result.type === "error");
+        // Update aria-invalid based on result
+        input.setAttribute(
+          "aria-invalid",
+          result.type === "error" ? "true" : "false"
+        );
+      }
+
+      // Announce command completion to screen readers
+      if (result.type === "success" && command.trim() !== "clear") {
+        announceToScreenReader(`Command ${command} executed successfully`);
       }
     }
 
@@ -360,6 +502,27 @@
     scrollToBottom();
   }
 
+  function showKeyboardShortcuts() {
+    const shortcuts = `
+Keyboard Shortcuts
+==================
+
+Navigation:
+  ↑ / ↓         - Navigate command history
+  Tab           - Autocomplete command
+  Enter         - Execute command
+  Esc           - Clear current input
+  Ctrl + L      - Clear terminal screen
+
+Accessibility:
+  ?             - Show this keyboard shortcuts help
+    `;
+
+    addCommandLine("?");
+    addOutput(shortcuts, false);
+    announceToScreenReader("Keyboard shortcuts displayed");
+  }
+
   function handleTabCompletion() {
     const partial = input.value.trim();
     if (partial) {
@@ -368,21 +531,52 @@
         input.value = suggestion;
         currentInput = suggestion;
         updateCursorPosition();
+        announceToScreenReader(`Command autocompleted to ${suggestion}`);
       }
     }
   }
 
-  input.addEventListener("input", () => {
+  function clearInput() {
+    input.value = "";
+    currentInput = "";
+    historyIndex = -1;
     updateCursorPosition();
-  });
+    input.setAttribute("aria-invalid", "false");
+    announceToScreenReader("Input cleared");
+  }
 
-  input.addEventListener("keydown", (e) => {
+  // Initialize everything when DOM is ready
+  function initialize() {
+    initializeDOMElements();
+    updateCursorPosition();
+    
+    // Focus input
+    input.focus();
+    
+    // Add event listeners
+    window.addEventListener("resize", handleResize, { passive: true });
+    
+    terminalBody.addEventListener("click", () => {
+      input.focus();
+    });
+    
+    input.addEventListener("input", () => {
+      updateCursorPosition();
+    });
+    
+    input.addEventListener("keydown", handleKeyDown);
+  }
+
+  function handleKeyDown(e: KeyboardEvent) {
     if (e.key === "Enter") {
       e.preventDefault();
       handleCommand(input.value);
     } else if (e.key === "Tab") {
       e.preventDefault();
       handleTabCompletion();
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      clearInput();
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
       if (historyIndex < commandHistory.length - 1) {
@@ -392,22 +586,40 @@
         historyIndex++;
         input.value = commandHistory[historyIndex];
         updateCursorPosition();
+        announceToScreenReader(`History: ${commandHistory[historyIndex]}`);
+      } else {
+        announceToScreenReader("Beginning of command history");
       }
     } else if (e.key === "ArrowDown") {
       e.preventDefault();
       if (historyIndex > -1) {
         historyIndex--;
-        input.value =
+        const newValue =
           historyIndex === -1 ? currentInput : commandHistory[historyIndex];
+        input.value = newValue;
         updateCursorPosition();
+        if (historyIndex === -1) {
+          announceToScreenReader("Returned to current input");
+        } else {
+          announceToScreenReader(`History: ${newValue}`);
+        }
+      } else {
+        announceToScreenReader("End of command history");
       }
     } else if (e.key === "l" && e.ctrlKey) {
       e.preventDefault();
       handleCommand("clear");
+    } else if (e.key === "?" && input.value === "") {
+      e.preventDefault();
+      input.value = "?";
+      handleCommand("?");
     }
-  });
+  }
 
-  updateCursorPosition();
-
-  input.focus();
+  // Use DOMContentLoaded for faster initial render
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initialize);
+  } else {
+    initialize();
+  }
 </script>

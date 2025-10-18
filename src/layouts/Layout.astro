@@ -2,16 +2,39 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    
+    <!-- Preload critical resources -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin />
+    
+    <!-- Optimize favicon loading -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    
+    <!-- Performance hints -->
     <meta name="generator" content={Astro.generator} />
-    <title>Fabrizio's Portfolio</title>
-    <meta name="description" content="Interactive terminal-style portfolio" />
+    
+    <!-- SEO -->
+    <title>Fabrizio Rizzi - Interactive Terminal Portfolio</title>
+    <meta
+      name="description"
+      content="An accessible, interactive terminal-style portfolio showcasing Fabrizio's projects, skills, and experience. Navigate using keyboard commands."
+    />
+    
+    <!-- Performance optimizations -->
+    <meta name="theme-color" content="#000000" />
+    <meta name="color-scheme" content="dark" />
   </head>
   <body>
-    <div class="terminal-window">
+    <!-- Skip link for keyboard navigation -->
+    <a href="#terminal-input" class="skip-link">Skip to terminal input</a>
+
+    <main
+      class="terminal-window"
+      role="main"
+      aria-label="Interactive terminal portfolio"
+    >
       <slot />
-    </div>
+    </main>
   </body>
 </html>
 
@@ -20,11 +43,23 @@
     --terminal-bg: #000000;
     --terminal-text: #00ff00;
     --terminal-chrome: #1a1a1a;
-    --terminal-border: #333333;
+    --terminal-border: #444444;
     --terminal-prompt: #00ff00;
-    --terminal-error: #ff0000;
+    --terminal-error: #ff4444;
     --terminal-link: #00ffff;
     --terminal-highlight: #ffff00;
+    --focus-outline: #00ffff;
+    --focus-outline-offset: 2px;
+  }
+
+  /* High contrast mode support */
+  @media (prefers-contrast: high) {
+    :root {
+      --terminal-text: #00ff00;
+      --terminal-bg: #000000;
+      --terminal-border: #00ff00;
+      --focus-outline: #ffffff;
+    }
   }
 
   * {
@@ -40,6 +75,45 @@
     overflow: hidden;
     background: #0a0a0a;
     font-family: "Courier New", Courier, monospace;
+    /* Optimize font rendering */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeSpeed;
+    /* Improve paint performance */
+    will-change: auto;
+  }
+
+  /* Skip link for keyboard navigation */
+  .skip-link {
+    position: absolute;
+    top: -40px;
+    left: 0;
+    background: var(--terminal-highlight);
+    color: #000000;
+    padding: 8px 16px;
+    text-decoration: none;
+    font-weight: bold;
+    z-index: 100;
+    border: 2px solid var(--terminal-text);
+  }
+
+  .skip-link:focus {
+    top: 0;
+  }
+
+  /* Enhanced focus indicators for AAA compliance */
+  *:focus {
+    outline: 3px solid var(--focus-outline);
+    outline-offset: var(--focus-outline-offset);
+  }
+
+  *:focus:not(:focus-visible) {
+    outline: none;
+  }
+
+  *:focus-visible {
+    outline: 3px solid var(--focus-outline);
+    outline-offset: var(--focus-outline-offset);
   }
 
   body {
@@ -67,5 +141,40 @@
     flex-direction: column;
     overflow: hidden;
     border: 1px solid var(--terminal-border);
+    /* Performance optimization - contain layout and paint */
+    contain: layout style paint;
+  }
+
+  /* Visually hidden utility class for screen readers */
+  .visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+  }
+
+  /* Motion reduction support */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
+  /* Support for increased text spacing (WCAG AAA) */
+  * {
+    line-height: 1.5;
+  }
+
+  p {
+    margin-bottom: 1em;
   }
 </style>
