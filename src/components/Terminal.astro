@@ -411,7 +411,6 @@ const mobileWelcomeMessage = getWelcomeMessage(350);
     getWelcomeMessage,
     shortcuts,
   } from "../utils/commands";
-  import { linkifyText } from "../utils/linkify";
   import { CommandHistory } from "../utils/commandHistory";
   import { ScreenReaderAnnouncer } from "../utils/accessibility";
   import {
@@ -446,14 +445,10 @@ const mobileWelcomeMessage = getWelcomeMessage(350);
     const desktopMessage = getWelcomeMessage(900);
     const mobileMessage = getWelcomeMessage(350);
 
-    // Linkify welcome messages (linkifyText handles escaping internally)
-    const linkedDesktop = linkifyText(desktopMessage);
-    const linkedMobile = linkifyText(mobileMessage);
-
     // Replace output with both banners (CSS will handle which one to show)
     output.innerHTML = `
-      <pre class="output-line welcome-banner welcome-banner-desktop">${linkedDesktop}</pre>
-      <pre class="output-line welcome-banner welcome-banner-mobile">${linkedMobile}</pre>
+      <pre class="output-line welcome-banner welcome-banner-desktop">${desktopMessage}</pre>
+      <pre class="output-line welcome-banner welcome-banner-mobile">${mobileMessage}</pre>
     `;
   }
 
@@ -484,12 +479,9 @@ const mobileWelcomeMessage = getWelcomeMessage(350);
 
     const pre = document.createElement("pre");
     pre.className = `output-line${isError ? " error" : ""}`;
-    
-    // Linkify URLs (this function also handles escaping internally)
-    const linkedContent = linkifyText(content);
-    
+
     // Use innerHTML since we have links
-    pre.innerHTML = linkedContent;
+    pre.innerHTML = content;
     output.appendChild(pre);
 
     // Announce to screen readers

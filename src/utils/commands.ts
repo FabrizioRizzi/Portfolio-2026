@@ -179,10 +179,10 @@ const CONTACT_TEXT = `
 Contact Information
 ===================
 
-Email:    fabrizio@fabriziorizzi.it
-GitHub:   github.com/fabriziorizzi
-LinkedIn: linkedin.com/in/fabriziorizzi
-Website:  fabriziorizzi.it
+Email:    <a target="_blank" href="mailto:fabrizio@fabriziorizzi.it">fabrizio@fabriziorizzi.it</a>
+GitHub:   <a target="_blank" href="https://github.com/fabriziorizzi">github.com/fabriziorizzi</a>
+LinkedIn: <a target="_blank" href="https://linkedin.com/in/fabriziorizzi">linkedin.com/in/fabriziorizzi</a>
+Website:  <a target="_blank" href="https://fabriziorizzi.it">fabriziorizzi.it</a>
 
 Feel free to reach out! I'm always open to discussing new projects,
 creative ideas, or opportunities to be part of your visions.
