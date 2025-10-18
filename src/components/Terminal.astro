@@ -212,6 +212,13 @@ const welcomeMessage = getWelcomeMessage(900); // Default to desktop size
     font-size: inherit;
     caret-color: transparent;
   }
+  
+  /* Prevent iOS zoom on input focus - ensure 16px minimum */
+  @media (max-width: 768px) {
+    .terminal-input {
+      font-size: 16px;
+    }
+  }
 
   /* Remove focus outline for terminal input - cursor provides focus indication */
   .terminal-input:focus {
@@ -316,7 +323,7 @@ const welcomeMessage = getWelcomeMessage(900); // Default to desktop size
     }
 
     .prompt {
-      font-size: 11px;
+      font-size: 16px;
     }
   }
 
