@@ -43,6 +43,20 @@ Type 'help' to see available commands.
 Press '?' for keyboard shortcuts.
 `;
 }
+export const shortcuts = `
+Keyboard Shortcuts
+==================
+
+Navigation:
+  ↑ / ↓         - Navigate command history
+  Tab           - Autocomplete command
+  Enter         - Execute command
+  Esc           - Clear current input
+  Ctrl + L      - Clear terminal screen
+
+Accessibility:
+  ?             - Show this keyboard shortcuts help
+    `;
 
 const HELP_TEXT = `
 Available Commands
@@ -70,7 +84,7 @@ const ABOUT_TEXT = `
 About Me
 ========
 
-Hello! I'm a passionate developer who loves creating interactive and engaging
+Hello! My name is Fabrizio and I'm a passionate developer who loves creating interactive and engaging
 web experiences. I specialize in modern web technologies and have a keen eye
 for design and user experience.
 
@@ -140,13 +154,13 @@ Work Experience
 
 Current Position
 ----------------
-Role: [Your Current Role]
-Company: [Company Name]
-Duration: [Start Date] - Present
+Role: Senior Software Engineer
+Company: Nearform
+Duration: December 2024 - Present
 
-• Describe your key responsibilities
-• Highlight major achievements
-• List technologies used
+• I work on the developer experience team at Nearform, where I build tools and services for our developer community.
+• I'm a senior software engineer, with a focus on building scalable and maintainable systems.
+• I'm a polyglot programmer, with a focus on building scalable and maintainable systems.
 
 Previous Position
 -----------------
@@ -165,16 +179,13 @@ const CONTACT_TEXT = `
 Contact Information
 ===================
 
-Email:    your.email@example.com
-GitHub:   github.com/yourusername
-LinkedIn: linkedin.com/in/yourusername
-Twitter:  @yourusername
-Website:  yourwebsite.com
+Email:    fabrizio@fabriziorizzi.it
+GitHub:   github.com/fabriziorizzi
+LinkedIn: linkedin.com/in/fabriziorizzi
+Website:  fabriziorizzi.it
 
 Feel free to reach out! I'm always open to discussing new projects,
 creative ideas, or opportunities to be part of your visions.
-
-Note: Update this with your actual contact information!
 `;
 
 export function executeCommand(command: string, width: number): CommandOutput {

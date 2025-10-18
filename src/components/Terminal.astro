@@ -58,8 +58,10 @@ const mobileWelcomeMessage = getWelcomeMessage(350);
     aria-label="Command output history"
   >
     <!-- Server-rendered welcome messages for instant FCP - show appropriate one based on screen size -->
-    <pre class="output-line welcome-banner welcome-banner-desktop">{desktopWelcomeMessage}</pre>
-    <pre class="output-line welcome-banner welcome-banner-mobile">{mobileWelcomeMessage}</pre>
+    <pre
+      class="output-line welcome-banner welcome-banner-desktop">{desktopWelcomeMessage}</pre>
+    <pre
+      class="output-line welcome-banner welcome-banner-mobile">{mobileWelcomeMessage}</pre>
   </div>
 
   <div class="terminal-input-line">
@@ -205,6 +207,28 @@ const mobileWelcomeMessage = getWelcomeMessage(350);
     margin-left: 8px;
   }
 
+  /* Link styles */
+  :global(.output-line a) {
+    color: var(--terminal-highlight);
+    text-decoration: underline;
+    cursor: pointer;
+    transition: opacity 0.2s ease;
+  }
+
+  :global(.output-line a:hover) {
+    opacity: 0.8;
+    text-decoration: underline;
+  }
+
+  :global(.output-line a:focus) {
+    outline: 2px solid var(--terminal-highlight);
+    outline-offset: 2px;
+  }
+
+  :global(.output-line a:visited) {
+    color: var(--terminal-highlight);
+  }
+
   .terminal-input-line {
     display: flex;
     align-items: center;
@@ -228,7 +252,7 @@ const mobileWelcomeMessage = getWelcomeMessage(350);
     font-size: inherit;
     caret-color: transparent;
   }
-  
+
   /* Prevent iOS zoom on input focus - ensure 16px minimum */
   @media (max-width: 768px) {
     .terminal-input {
@@ -372,7 +396,7 @@ const mobileWelcomeMessage = getWelcomeMessage(350);
       overflow-x: auto; /* Allow scroll only within banner if still too wide */
       -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
     }
-    
+
     :global(.output-line) {
       overflow-wrap: break-word;
       word-break: break-word;
@@ -385,12 +409,20 @@ const mobileWelcomeMessage = getWelcomeMessage(350);
     executeCommand,
     getCommandSuggestion,
     getWelcomeMessage,
+    shortcuts,
   } from "../utils/commands";
+  import { linkifyText } from "../utils/linkify";
+  import { CommandHistory } from "../utils/commandHistory";
+  import { ScreenReaderAnnouncer } from "../utils/accessibility";
+  import {
+    scrollToBottom,
+    updateCursorPosition,
+    getBreakpoint,
+    debounce,
+  } from "../utils/domHelpers";
 
   // Terminal state
-  let commandHistory: string[] = [];
-  let historyIndex = -1;
-  let currentInput = "";
+  const commandHistory = new CommandHistory();
   let currentWidth = window.innerWidth;
 
   // DOM elements - defer initialization until DOMContentLoaded for faster FCP
@@ -398,105 +430,75 @@ const mobileWelcomeMessage = getWelcomeMessage(350);
   let output: HTMLDivElement;
   let cursor: HTMLElement;
   let terminalBody: HTMLElement;
-  let statusAnnouncer: HTMLDivElement;
+  let prompt: HTMLElement;
+  let announcer: ScreenReaderAnnouncer;
 
   function initializeDOMElements() {
     input = document.getElementById("terminal-input") as HTMLInputElement;
     output = document.getElementById("terminal-output") as HTMLDivElement;
     cursor = document.querySelector(".cursor") as HTMLElement;
     terminalBody = document.querySelector(".terminal-body") as HTMLElement;
-    statusAnnouncer = document.getElementById("terminal-status") as HTMLDivElement;
+    prompt = document.querySelector(".prompt") as HTMLElement;
+    announcer = new ScreenReaderAnnouncer("terminal-status");
   }
 
   function displayWelcomeMessage() {
     const desktopMessage = getWelcomeMessage(900);
     const mobileMessage = getWelcomeMessage(350);
-    
+
+    // Linkify welcome messages (linkifyText handles escaping internally)
+    const linkedDesktop = linkifyText(desktopMessage);
+    const linkedMobile = linkifyText(mobileMessage);
+
     // Replace output with both banners (CSS will handle which one to show)
     output.innerHTML = `
-      <pre class="output-line welcome-banner welcome-banner-desktop">${desktopMessage}</pre>
-      <pre class="output-line welcome-banner welcome-banner-mobile">${mobileMessage}</pre>
+      <pre class="output-line welcome-banner welcome-banner-desktop">${linkedDesktop}</pre>
+      <pre class="output-line welcome-banner welcome-banner-mobile">${linkedMobile}</pre>
     `;
   }
 
   // Defer resize handler to reduce initial JS execution
-  let resizeTimeout: number;
-  function handleResize() {
-    clearTimeout(resizeTimeout);
-    resizeTimeout = window.setTimeout(() => {
-      const newWidth = window.innerWidth;
-      const oldBreakpoint =
-        currentWidth < 480 ? "mobile" : currentWidth < 768 ? "small" : "large";
-      const newBreakpoint =
-        newWidth < 480 ? "mobile" : newWidth < 768 ? "small" : "large";
+  const handleResize = debounce(() => {
+    const newWidth = window.innerWidth;
+    const oldBreakpoint = getBreakpoint(currentWidth);
+    const newBreakpoint = getBreakpoint(newWidth);
 
-      if (oldBreakpoint !== newBreakpoint) {
-        // Skip the first 2 elements (desktop and mobile banners)
-        const outputLines = Array.from(output.children).slice(2);
-        displayWelcomeMessage();
-        updateCursorPosition();
-        outputLines.forEach((line) => output.appendChild(line));
-        currentWidth = newWidth;
-      }
-    }, 150); // Debounce resize events
-  }
-
-  function scrollToBottom() {
-    requestAnimationFrame(() => {
-      terminalBody.scrollTop = terminalBody.scrollHeight;
-      output.scrollTop = output.scrollHeight;
-    });
-  }
-
-  function updateCursorPosition() {
-    const inputRect = input.getBoundingClientRect();
-    const prompt = document.querySelector(".prompt") as HTMLElement;
-    const promptRect = prompt.getBoundingClientRect();
-    const canvas = document.createElement("canvas");
-    const context = canvas.getContext("2d");
-    if (context) {
-      context.font = window.getComputedStyle(input).font;
-      const textWidth = context.measureText(input.value).width;
-      cursor.style.left = `${promptRect.width + textWidth + 8}px`;
+    if (oldBreakpoint !== newBreakpoint) {
+      // Skip the first 2 elements (desktop and mobile banners)
+      const outputLines = Array.from(output.children).slice(2);
+      displayWelcomeMessage();
+      updateCursorPosition(cursor, input, prompt);
+      outputLines.forEach((line) => output.appendChild(line));
+      currentWidth = newWidth;
     }
-  }
-
-  // Announce to screen readers
-  function announceToScreenReader(
-    message: string,
-    priority: "polite" | "assertive" = "polite"
-  ) {
-    if (statusAnnouncer) {
-      statusAnnouncer.setAttribute("aria-live", priority);
-      statusAnnouncer.textContent = message;
-      // Clear after announcement
-      setTimeout(() => {
-        statusAnnouncer.textContent = "";
-      }, 1000);
-    }
-  }
+  }, 150);
 
   function addOutput(content: string, isError: boolean = false) {
     if (content === "__CLEAR__") {
       // Clear all output and show only welcome messages
       displayWelcomeMessage();
-      announceToScreenReader("Terminal cleared");
-      scrollToBottom();
+      announcer.announce("Terminal cleared");
+      scrollToBottom(terminalBody, output);
       return;
     }
 
     const pre = document.createElement("pre");
     pre.className = `output-line${isError ? " error" : ""}`;
-    pre.textContent = content;
+    
+    // Linkify URLs (this function also handles escaping internally)
+    const linkedContent = linkifyText(content);
+    
+    // Use innerHTML since we have links
+    pre.innerHTML = linkedContent;
     output.appendChild(pre);
 
     // Announce to screen readers
     if (isError) {
-      announceToScreenReader(`Error: ${content.split("\n")[0]}`, "assertive");
+      announcer.announce(`Error: ${content.split("\n")[0]}`, "assertive");
     }
 
     // Scroll to bottom
-    scrollToBottom();
+    scrollToBottom(terminalBody, output);
   }
 
   // Add command line to output
@@ -507,7 +509,7 @@ const mobileWelcomeMessage = getWelcomeMessage(350);
     output.appendChild(div);
 
     // Scroll to bottom after adding command
-    scrollToBottom();
+    scrollToBottom(terminalBody, output);
   }
 
   function handleCommand(command: string) {
@@ -516,13 +518,11 @@ const mobileWelcomeMessage = getWelcomeMessage(350);
       if (command.trim() === "?") {
         showKeyboardShortcuts();
         input.value = "";
-        currentInput = "";
-        updateCursorPosition();
+        updateCursorPosition(cursor, input, prompt);
         return;
       }
 
-      commandHistory.unshift(command);
-      historyIndex = -1;
+      commandHistory.add(command);
 
       addCommandLine(command);
 
@@ -538,36 +538,20 @@ const mobileWelcomeMessage = getWelcomeMessage(350);
 
       // Announce command completion to screen readers
       if (result.type === "success" && command.trim() !== "clear") {
-        announceToScreenReader(`Command ${command} executed successfully`);
+        announcer.announce(`Command ${command} executed successfully`);
       }
     }
 
     input.value = "";
-    currentInput = "";
-    updateCursorPosition();
+    updateCursorPosition(cursor, input, prompt);
 
-    scrollToBottom();
+    scrollToBottom(terminalBody, output);
   }
 
   function showKeyboardShortcuts() {
-    const shortcuts = `
-Keyboard Shortcuts
-==================
-
-Navigation:
-  ↑ / ↓         - Navigate command history
-  Tab           - Autocomplete command
-  Enter         - Execute command
-  Esc           - Clear current input
-  Ctrl + L      - Clear terminal screen
-
-Accessibility:
-  ?             - Show this keyboard shortcuts help
-    `;
-
     addCommandLine("?");
     addOutput(shortcuts, false);
-    announceToScreenReader("Keyboard shortcuts displayed");
+    announcer.announce("Keyboard shortcuts displayed");
   }
 
   function handleTabCompletion() {
@@ -576,41 +560,39 @@ Accessibility:
       const suggestion = getCommandSuggestion(partial);
       if (suggestion) {
         input.value = suggestion;
-        currentInput = suggestion;
-        updateCursorPosition();
-        announceToScreenReader(`Command autocompleted to ${suggestion}`);
+        updateCursorPosition(cursor, input, prompt);
+        announcer.announce(`Command autocompleted to ${suggestion}`);
       }
     }
   }
 
   function clearInput() {
     input.value = "";
-    currentInput = "";
-    historyIndex = -1;
-    updateCursorPosition();
+    commandHistory.reset();
+    updateCursorPosition(cursor, input, prompt);
     input.setAttribute("aria-invalid", "false");
-    announceToScreenReader("Input cleared");
+    announcer.announce("Input cleared");
   }
 
   // Initialize everything when DOM is ready
   function initialize() {
     initializeDOMElements();
-    updateCursorPosition();
-    
+    updateCursorPosition(cursor, input, prompt);
+
     // Focus input
     input.focus();
-    
+
     // Add event listeners
     window.addEventListener("resize", handleResize, { passive: true });
-    
+
     terminalBody.addEventListener("click", () => {
       input.focus();
     });
-    
+
     input.addEventListener("input", () => {
-      updateCursorPosition();
+      updateCursorPosition(cursor, input, prompt);
     });
-    
+
     input.addEventListener("keydown", handleKeyDown);
   }
 
@@ -626,32 +608,24 @@ Accessibility:
       clearInput();
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
-      if (historyIndex < commandHistory.length - 1) {
-        if (historyIndex === -1) {
-          currentInput = input.value;
-        }
-        historyIndex++;
-        input.value = commandHistory[historyIndex];
-        updateCursorPosition();
-        announceToScreenReader(`History: ${commandHistory[historyIndex]}`);
-      } else {
-        announceToScreenReader("Beginning of command history");
+      commandHistory.saveCurrentInput(input.value);
+      const previousCommand = commandHistory.navigateUp();
+      if (previousCommand !== null) {
+        input.value = previousCommand;
+        updateCursorPosition(cursor, input, prompt);
+        announcer.announce(`History: ${previousCommand}`);
+      } else if (commandHistory.isAtBeginning()) {
+        announcer.announce("Beginning of command history");
       }
     } else if (e.key === "ArrowDown") {
       e.preventDefault();
-      if (historyIndex > -1) {
-        historyIndex--;
-        const newValue =
-          historyIndex === -1 ? currentInput : commandHistory[historyIndex];
-        input.value = newValue;
-        updateCursorPosition();
-        if (historyIndex === -1) {
-          announceToScreenReader("Returned to current input");
-        } else {
-          announceToScreenReader(`History: ${newValue}`);
-        }
+      const nextCommand = commandHistory.navigateDown();
+      input.value = nextCommand;
+      updateCursorPosition(cursor, input, prompt);
+      if (commandHistory.isAtEnd()) {
+        announcer.announce("Returned to current input");
       } else {
-        announceToScreenReader("End of command history");
+        announcer.announce(`History: ${nextCommand}`);
       }
     } else if (e.key === "l" && e.ctrlKey) {
       e.preventDefault();
