@@ -69,7 +69,6 @@
     padding: 0;
     width: 100%;
     height: 100%;
-    overflow: hidden;
     background: #0a0a0a;
     font-family: "Courier New", Courier, monospace;
     /* Optimize font rendering */
@@ -78,6 +77,24 @@
     text-rendering: optimizeSpeed;
     /* Improve paint performance */
     will-change: auto;
+  }
+
+  /* Desktop: prevent body scroll */
+  @media (min-width: 769px) {
+    html,
+    body {
+      overflow: hidden;
+    }
+  }
+
+  /* Mobile: allow body scroll, fix terminal height */
+  @media (max-width: 768px) {
+    html,
+    body {
+      overflow: auto;
+      height: auto;
+      min-height: 100%;
+    }
   }
 
   /* Skip link for keyboard navigation */
@@ -120,9 +137,13 @@
     padding: 20px;
   }
 
+  /* Mobile: full screen terminal */
   @media (max-width: 768px) {
     body {
-      padding: 10px;
+      padding: 0;
+      display: block;
+      align-items: unset;
+      justify-content: unset;
     }
   }
 
@@ -140,6 +161,13 @@
     border: 1px solid var(--terminal-border);
     /* Performance optimization - contain layout and paint */
     contain: layout style paint;
+  }
+  
+  /* Ensure no horizontal scroll on mobile */
+  @media (max-width: 768px) {
+    .terminal-window {
+      overflow-x: hidden;
+    }
   }
 
   /* Visually hidden utility class for screen readers */

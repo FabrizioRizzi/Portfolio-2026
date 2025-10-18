@@ -1,8 +1,9 @@
 ---
 import { getWelcomeMessage } from "../utils/commands";
 
-// Server-render the welcome message for better FCP
-const welcomeMessage = getWelcomeMessage(900); // Default to desktop size
+// Server-render both desktop and mobile welcome messages for better FCP
+const desktopWelcomeMessage = getWelcomeMessage(900);
+const mobileWelcomeMessage = getWelcomeMessage(350);
 ---
 
 <header class="terminal-header" role="banner">
@@ -56,8 +57,9 @@ const welcomeMessage = getWelcomeMessage(900); // Default to desktop size
     aria-relevant="additions"
     aria-label="Command output history"
   >
-    <!-- Server-rendered welcome message for instant FCP -->
-    <pre class="output-line welcome-banner">{welcomeMessage}</pre>
+    <!-- Server-rendered welcome messages for instant FCP - show appropriate one based on screen size -->
+    <pre class="output-line welcome-banner welcome-banner-desktop">{desktopWelcomeMessage}</pre>
+    <pre class="output-line welcome-banner welcome-banner-mobile">{mobileWelcomeMessage}</pre>
   </div>
 
   <div class="terminal-input-line">
@@ -139,6 +141,7 @@ const welcomeMessage = getWelcomeMessage(900); // Default to desktop size
     background: var(--terminal-bg);
     padding: 20px;
     overflow-y: auto;
+    overflow-x: hidden; /* Prevent horizontal scroll */
     display: flex;
     flex-direction: column;
     color: var(--terminal-text);
@@ -151,9 +154,11 @@ const welcomeMessage = getWelcomeMessage(900); // Default to desktop size
   .terminal-output {
     flex: 1;
     overflow-y: auto;
+    overflow-x: hidden; /* Prevent horizontal scroll */
     margin-bottom: 10px;
     /* Improve rendering performance for dynamic content */
     content-visibility: auto;
+    width: 100%; /* Ensure it respects container width */
   }
 
   /* Global styles for dynamically created elements */
@@ -170,6 +175,17 @@ const welcomeMessage = getWelcomeMessage(900); // Default to desktop size
     color: var(--terminal-highlight);
     line-height: 1.2;
     font-size: 14px;
+    overflow-x: auto; /* Allow horizontal scroll within banner if needed */
+    max-width: 100%;
+  }
+
+  /* Show/hide appropriate banner based on screen size */
+  :global(.welcome-banner-mobile) {
+    display: none;
+  }
+
+  :global(.welcome-banner-desktop) {
+    display: block;
   }
 
   :global(.output-line.error) {
@@ -283,8 +299,14 @@ const welcomeMessage = getWelcomeMessage(900); // Default to desktop size
   @media (max-width: 768px) {
     .terminal-window {
       max-height: none;
-      height: 95vh;
+      height: 100vh;
+      height: 100dvh; /* Use dynamic viewport height for better mobile support */
       border-radius: 0;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
     }
 
     .terminal-body {
@@ -295,6 +317,15 @@ const welcomeMessage = getWelcomeMessage(900); // Default to desktop size
     :global(.output-line.welcome-banner) {
       font-size: 11px;
       line-height: 1.1;
+    }
+
+    /* Show mobile banner, hide desktop banner */
+    :global(.welcome-banner-mobile) {
+      display: block;
+    }
+
+    :global(.welcome-banner-desktop) {
+      display: none;
     }
 
     .terminal-title {
@@ -330,13 +361,21 @@ const welcomeMessage = getWelcomeMessage(900); // Default to desktop size
   /* Very small screens */
   @media (max-width: 360px) {
     .terminal-body {
-      padding: 8px;
+      padding: 6px;
       font-size: 10px;
     }
 
     :global(.output-line.welcome-banner) {
-      font-size: 9px;
+      font-size: 8px; /* Smaller font to fit banner */
       line-height: 1;
+      letter-spacing: -0.5px; /* Tighten spacing */
+      overflow-x: auto; /* Allow scroll only within banner if still too wide */
+      -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+    }
+    
+    :global(.output-line) {
+      overflow-wrap: break-word;
+      word-break: break-word;
     }
   }
 </style>
@@ -370,13 +409,14 @@ const welcomeMessage = getWelcomeMessage(900); // Default to desktop size
   }
 
   function displayWelcomeMessage() {
-    const welcomeMessage = getWelcomeMessage(window.innerWidth);
-    const existingWelcome = output.querySelector(".welcome-banner");
-    if (existingWelcome) {
-      existingWelcome.textContent = welcomeMessage;
-    } else {
-      output.innerHTML = `<pre class="output-line welcome-banner">${welcomeMessage}</pre>`;
-    }
+    const desktopMessage = getWelcomeMessage(900);
+    const mobileMessage = getWelcomeMessage(350);
+    
+    // Replace output with both banners (CSS will handle which one to show)
+    output.innerHTML = `
+      <pre class="output-line welcome-banner welcome-banner-desktop">${desktopMessage}</pre>
+      <pre class="output-line welcome-banner welcome-banner-mobile">${mobileMessage}</pre>
+    `;
   }
 
   // Defer resize handler to reduce initial JS execution
@@ -391,7 +431,8 @@ const welcomeMessage = getWelcomeMessage(900); // Default to desktop size
         newWidth < 480 ? "mobile" : newWidth < 768 ? "small" : "large";
 
       if (oldBreakpoint !== newBreakpoint) {
-        const outputLines = Array.from(output.children).slice(1);
+        // Skip the first 2 elements (desktop and mobile banners)
+        const outputLines = Array.from(output.children).slice(2);
         displayWelcomeMessage();
         updateCursorPosition();
         outputLines.forEach((line) => output.appendChild(line));
@@ -437,9 +478,8 @@ const welcomeMessage = getWelcomeMessage(900); // Default to desktop size
 
   function addOutput(content: string, isError: boolean = false) {
     if (content === "__CLEAR__") {
-      // Clear all output and show only welcome message
-      const welcomeMessage = getWelcomeMessage(window.innerWidth);
-      output.innerHTML = `<pre class="output-line welcome-banner">${welcomeMessage}</pre>`;
+      // Clear all output and show only welcome messages
+      displayWelcomeMessage();
       announceToScreenReader("Terminal cleared");
       scrollToBottom();
       return;
