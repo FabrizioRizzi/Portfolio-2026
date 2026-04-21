@@ -84,17 +84,24 @@ const ABOUT_TEXT = `
 About Me
 ========
 
-Hello! My name is Fabrizio and I'm a passionate developer who loves creating interactive and engaging
-web experiences. I specialize in modern web technologies and have a keen eye
-for design and user experience.
+Hello! My name is Fabrizio, a senior software engineer who loves building
+interactive and engaging web experiences. I specialize in modern web
+technologies and care deeply about craft, design, and user experience.
 
-When I'm not coding, you can find me exploring new technologies, contributing
-to open-source projects, or sharing knowledge with the developer community.
+Lately I've been experimenting with AI in my day-to-day engineering — from
+pair-programming with agents to trying out spec-driven development, where
+specs act as the source of truth and AI helps turn them into code, tests,
+and docs. On the side, I'm also studying Python to broaden my toolbox
+beyond the web stack.
+
+When I'm not coding, you can find me playing guitar, reading books,
+cooking, or spending time with my family.
 
 Current Focus:
-- Building scalable web applications
-- Exploring modern frontend frameworks
-- Creating developer tools
+- Building scalable web applications with modern frontend frameworks
+- Experimenting with AI-assisted and spec-driven development workflows
+- Creating developer tools that make engineering more enjoyable
+- Studying Python for automation, scripting, and AI tooling
 `;
 
 const PROJECTS_TEXT = `
@@ -127,25 +134,29 @@ Languages:
   • JavaScript / TypeScript
   • HTML / CSS
   • Python
-  • [Add your languages]
 
 Frameworks & Libraries:
-  • React / Vue / Svelte
-  • Node.js / Express
+  • React / Angular / Vue / Svelte
+  • Next.js
+  • Tailwind CSS
+  • Shadcn UI
+  • Node.js / Express / Fastify
   • Astro
-  • [Add your frameworks]
+  • Vite
+  • PostgreSQL / MySQL / SQLite
+  • ... and a lot more :D
 
 Tools & Technologies:
   • Git / GitHub
   • Docker
   • CI/CD
-  • [Add your tools]
+  • AI / LLMs
+  • Cursor / Copilot / Claude
 
 Design:
   • Responsive Design
   • UI/UX Principles
   • Accessibility
-  • [Add your design skills]
 `;
 
 const EXPERIENCE_TEXT = `
