@@ -64,7 +64,6 @@ Available Commands
 
   help        - Show this help message
   about       - Learn about me
-  projects    - View my projects
   skills      - See my technical skills
   experience  - View my work experience
   contact     - Get my contact information
@@ -102,28 +101,6 @@ Current Focus:
 - Experimenting with AI-assisted and spec-driven development workflows
 - Creating developer tools that make engineering more enjoyable
 - Studying Python for automation, scripting, and AI tooling
-`;
-
-const PROJECTS_TEXT = `
-Projects
-========
-
-1. Terminal Portfolio
-   A retro-styled interactive terminal portfolio built with Astro
-   Tech: Astro, TypeScript, CSS
-   Status: You're looking at it! 🎉
-
-2. [Add Your Project Here]
-   Description of your project
-   Tech: List technologies used
-   Link: https://your-project-link.com
-
-3. [Add Another Project]
-   Description of another project
-   Tech: List technologies used
-   Link: https://your-project-link.com
-
-Note: Replace this with your actual projects!
 `;
 
 const SKILLS_TEXT = `
@@ -169,21 +146,19 @@ Role: Senior Software Engineer
 Company: Nearform
 Duration: December 2024 - Present
 
-• I work on the developer experience team at Nearform, where I build tools and services for our developer community.
-• I'm a senior software engineer, with a focus on building scalable and maintainable systems.
-• I'm a polyglot programmer, with a focus on building scalable and maintainable systems.
+• As a senior software engineer, I partner with international clients on production systems—clear communication, solid architecture, and pragmatic delivery.
+• At Nearform I guide work from early conversations through production—partnering with stakeholders on scope, delivering in increments, and refining how things run once they're live.
+• I'm growing into an AI-native engineer through Nearform's AI upskilling, weaving AI-assisted workflows into how I design, build, and review software.
 
 Previous Position
 -----------------
-Role: [Previous Role]
-Company: [Company Name]
-Duration: [Start Date] - [End Date]
+Role: Senior Front-end Developer
+Company: SORINT.lab
+Duration: November 2017 - November 2024 · Milan, Italy
 
-• Describe your key responsibilities
-• Highlight major achievements
-• List technologies used
-
-Note: Update this with your actual work experience!
+• Team lead and lead front-end for a finance platform: 10+ web and hybrid desktop apps, real-time data, D3 charts, and a shared UI library—alongside a 20+ person cross-functional team.
+• Lead front-end on a webmail client (custom design system / UI library), an internal open-source comms stack (chat, voice, video), and 10+ consulting projects for customers.
+• Mentored juniors and wrote for the company technical blog.
 `;
 
 const CONTACT_TEXT = `
@@ -212,9 +187,6 @@ export function executeCommand(command: string, width: number): CommandOutput {
     case "about":
       return { type: "success", content: ABOUT_TEXT };
 
-    case "projects":
-      return { type: "success", content: PROJECTS_TEXT };
-
     case "skills":
       return { type: "success", content: SKILLS_TEXT };
 
@@ -238,7 +210,6 @@ export function executeCommand(command: string, width: number): CommandOutput {
 export const AVAILABLE_COMMANDS = [
   "help",
   "about",
-  "projects",
   "skills",
   "experience",
   "contact",

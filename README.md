@@ -1,6 +1,6 @@
 # 🖥️ Fabrizio Rizzi - Interactive Terminal Portfolio
 
-A retro-styled, accessible, and highly optimized interactive terminal portfolio built with Astro. Features a command-line interface where visitors can explore projects, skills, and experience through terminal commands.
+A retro-styled, accessible, and highly optimized interactive terminal portfolio built with Astro. Features a command-line interface where visitors can explore skills, and experience through terminal commands.
 
 ## ✨ Features
 
@@ -82,7 +82,6 @@ Once the app is running, you can use these commands in the terminal:
 | :----------- | :------------------------------------ |
 | `help`       | Show available commands               |
 | `about`      | Learn about Fabrizio                  |
-| `projects`   | View projects                         |
 | `skills`     | See technical skills                  |
 | `experience` | View work experience                  |
 | `contact`    | Get contact information               |
@@ -159,7 +158,6 @@ This portfolio is highly optimized for performance:
 
 1. **Edit `src/utils/commands.ts`** to update:
    - About section
-   - Projects list
    - Skills
    - Work experience
    - Contact information
