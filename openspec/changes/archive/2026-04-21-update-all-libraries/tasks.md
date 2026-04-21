@@ -32,16 +32,16 @@
 
 ## 6. Commit
 
-- [ ] 6.1 Stage `package.json`, `package-lock.json`, `openspec/changes/update-all-libraries/` (and `.gitignore` if 4.3 touched it).
-- [ ] 6.2 Commit as a single atomic commit with message `chore(deps): update astro to ^6.x and terser to ^5.46.1`.
-- [ ] 6.3 Confirm `git show --name-only HEAD` lists only the files above and nothing from `src/`, per the `dependency-maintenance` atomic-commit requirement.
+- [x] 6.1 Stage `package.json`, `package-lock.json`, `openspec/changes/update-all-libraries/` (and `.gitignore` if 4.3 touched it). — Staged exactly that set plus `openspec/config.yaml` (project-level openspec config, required for the staged change artifacts to be usable). Left `src/utils/commands.ts` and `.cursor/` untouched.
+- [x] 6.2 Commit as a single atomic commit with message `chore(deps): update astro to ^6.x and terser to ^5.46.1`. — Committed as `27a6402` with a body summarizing the bump scope, verification outcomes, and the new spec.
+- [x] 6.3 Confirm `git show --name-only HEAD` lists only the files above and nothing from `src/`, per the `dependency-maintenance` atomic-commit requirement. — Verified: `git show --name-only HEAD | grep ^src/` returns nothing.
 
 ## 7. Archive the change
 
-- [ ] 7.1 Move `openspec/changes/update-all-libraries/specs/dependency-maintenance/spec.md` to `openspec/specs/dependency-maintenance/spec.md` (via `openspec archive` or the standard archive workflow for this project).
-- [ ] 7.2 Confirm `openspec/specs/dependency-maintenance/spec.md` is the canonical spec going forward; future minor/major bumps reference it, not this change folder.
+- [ ] 7.1 Move `openspec/changes/update-all-libraries/specs/dependency-maintenance/spec.md` to `openspec/specs/dependency-maintenance/spec.md` (via `openspec archive` or the standard archive workflow for this project). — **Pending explicit owner go-ahead**: ready to run `openspec archive update-all-libraries -y` (or `/opsx-archive`) after the owner has eyeballed the dev server in a real browser.
+- [ ] 7.2 Confirm `openspec/specs/dependency-maintenance/spec.md` is the canonical spec going forward; future minor/major bumps reference it, not this change folder. — Gated on 7.1.
 
 ## 8. Rollback path (only if a gate fails)
 
-- [ ] 8.1 If any of 5.1 / 5.2 / 5.3 fail, run `git restore package.json package-lock.json && rm -rf node_modules && npm install` to return to Astro 5.
-- [ ] 8.2 Open a follow-up change proposal describing the specific failure mode (CVE, build error, runtime error) and link it from this change's history.
+- [~] 8.1 If any of 5.1 / 5.2 / 5.3 fail, run `git restore package.json package-lock.json && rm -rf node_modules && npm install` to return to Astro 5. — **N/A**: all verification gates (5.1 audit, 5.2 build, 5.3 dev server, 5.4 outdated) passed.
+- [~] 8.2 Open a follow-up change proposal describing the specific failure mode (CVE, build error, runtime error) and link it from this change's history. — **N/A**: no failure to document.
