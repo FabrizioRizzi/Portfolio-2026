@@ -15,10 +15,14 @@ A retro-styled, accessible, and highly optimized interactive terminal portfolio 
   - Reduced motion support
 - **💻 Terminal Interface** - Interactive command-line experience
   - Command history (↑/↓ arrows)
-  - Tab autocompletion
+  - Tab autocompletion (desktop)
+  - **Mobile auto-execute** — typing a complete command name on touch /
+    mobile devices runs it immediately, no `Enter` required
   - Keyboard shortcuts (Ctrl+L to clear, etc.)
   - **Clickable links** - URLs and emails automatically detected and linkified
-  - Mobile responsive with adaptive UI
+  - **Mobile-first layout** with single-scroll surface anchored to the
+    visual viewport — input row stays pinned above the soft keyboard on iOS
+    Safari, iOS Chrome, Android Chrome, and Android Firefox
 - **🎨 Modern CSS** - Performance-optimized styling
   - CSS containment for reduced reflows
   - Content-visibility for lazy rendering
@@ -60,6 +64,8 @@ A retro-styled, accessible, and highly optimized interactive terminal portfolio 
 - **`commands.ts`** - Command execution, content, and ASCII banners
 - **`domHelpers.ts`** - DOM utilities (scroll, cursor position, breakpoints, debounce)
 - **`linkify.ts`** - Automatic URL and email detection with XSS protection
+- **`viewport.ts`** - `installVisualViewport` writes `--vvh` to `<html>` so
+  CSS can size the terminal to the visible (not layout) viewport
 
 ## 🧞 Commands
 
@@ -71,8 +77,15 @@ All commands are run from the root of the project, from a terminal:
 | `npm run dev`             | Starts local dev server at `localhost:4321`      |
 | `npm run build`           | Build your production site to `./dist/`          |
 | `npm run preview`         | Preview your build locally, before deploying     |
+| `npm test`                | Run the unit test suite (Vitest + happy-dom)     |
+| `npm run test:watch`      | Run tests in watch mode while editing            |
+| `npm run test:e2e`        | Run the Playwright E2E suite (chromium/firefox/webkit) |
+| `npm run test:e2e:ui`     | Run Playwright in interactive UI mode            |
+| `npm run test:e2e:report` | Open the last Playwright HTML report             |
 | `npm run astro ...`       | Run CLI commands like `astro add`, `astro check` |
 | `npm run astro -- --help` | Get help using the Astro CLI                     |
+
+> **First-time E2E setup:** run `npx playwright install` once to download the browser binaries. The E2E suite spins up the production build via `astro preview` automatically (see `playwright.config.ts`).
 
 ## 🎮 Terminal Commands
 
@@ -91,10 +104,16 @@ Once the app is running, you can use these commands in the terminal:
 ### Keyboard Shortcuts
 
 - **↑ / ↓** - Navigate command history
-- **Tab** - Autocomplete commands
+- **Tab** - Autocomplete commands (desktop)
 - **Enter** - Execute command
 - **Esc** - Clear current input
 - **Ctrl + L** - Clear terminal screen
+
+### Touch / Mobile
+
+- **Type a complete command name** (e.g. `help`) and it runs immediately —
+  no `Enter` required. Works on any viewport ≤ 768 px wide or on devices
+  with a coarse pointer.
 
 ### 🔗 Clickable Links
 
@@ -278,13 +297,16 @@ npx vercel --prod
 
 This portfolio follows WCAG AAA guidelines with comprehensive accessibility features:
 
-- **ARIA Live Regions** - Command results announced to screen readers via `ScreenReaderAnnouncer` class
+- **ARIA Live Regions** - Command results announced to screen readers via
+  `ScreenReaderAnnouncer` class
 - **Semantic HTML** - Proper roles (`log`, `status`, `banner`)
 - **Keyboard Navigation** - Full keyboard support for all interactions
 - **Focus Management** - Visible focus indicators and logical tab order
 - **Alternative Text** - Descriptive labels for all interactive elements
 - **Reduced Motion** - Respects `prefers-reduced-motion` preference
 - **High Contrast** - Tested with high contrast mode
+- **Safe Area Awareness** - `env(safe-area-inset-*)` honored on notched
+  devices so input and output never fall under a notch or home indicator
 
 ## 🧑‍💻 Development Tips
 

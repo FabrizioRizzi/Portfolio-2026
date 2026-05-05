@@ -140,10 +140,14 @@ const mobileWelcomeMessage = getWelcomeMessage(350);
 
   .terminal-body {
     flex: 1;
+    min-height: 0; /* Allow children with overflow to size correctly inside flex */
     background: var(--terminal-bg);
     padding: 20px;
-    overflow-y: auto;
-    overflow-x: hidden; /* Prevent horizontal scroll */
+    /* Single scroll surface lives on .terminal-output below; body itself does not scroll */
+    overflow: hidden;
+    /* Respect landscape notch insets so output is not clipped */
+    padding-inline: max(20px, env(safe-area-inset-left))
+      max(20px, env(safe-area-inset-right));
     display: flex;
     flex-direction: column;
     color: var(--terminal-text);
@@ -155,12 +159,14 @@ const mobileWelcomeMessage = getWelcomeMessage(350);
 
   .terminal-output {
     flex: 1;
+    min-height: 0; /* Required for overflow inside a flex column */
     overflow-y: auto;
     overflow-x: hidden; /* Prevent horizontal scroll */
-    margin-bottom: 10px;
     /* Improve rendering performance for dynamic content */
     content-visibility: auto;
     width: 100%; /* Ensure it respects container width */
+    /* Smooth touch scrolling on iOS */
+    -webkit-overflow-scrolling: touch;
   }
 
   /* Global styles for dynamically created elements */
@@ -232,8 +238,14 @@ const mobileWelcomeMessage = getWelcomeMessage(350);
   .terminal-input-line {
     display: flex;
     align-items: center;
-    margin-top: auto;
-    position: relative;
+    /* Pin the input row to the bottom of the single scroll surface */
+    position: sticky;
+    bottom: 0;
+    /* Mask scroll-through content with the terminal background */
+    background: var(--terminal-bg);
+    padding-top: 8px;
+    /* Honor home-indicator inset on notched devices */
+    padding-bottom: env(safe-area-inset-bottom, 0px);
   }
 
   .prompt {
@@ -323,18 +335,25 @@ const mobileWelcomeMessage = getWelcomeMessage(350);
   @media (max-width: 768px) {
     .terminal-window {
       max-height: none;
-      height: 100vh;
-      height: 100dvh; /* Use dynamic viewport height for better mobile support */
+      /* Visual-viewport height (set by installVisualViewport) with progressive fallbacks.
+         Body scroll is locked at every breakpoint, so flex sizing alone keeps the
+         terminal full-bleed without needing position: fixed. */
+      height: var(--vvh, 100dvh);
       border-radius: 0;
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
+    }
+
+    /* Final fallback for browsers without dvh support */
+    @supports not (height: 100dvh) {
+      .terminal-window {
+        height: var(--vvh, 100vh);
+      }
     }
 
     .terminal-body {
       padding: 15px;
+      /* Re-apply landscape safe-area insets at the mobile padding scale */
+      padding-inline: max(15px, env(safe-area-inset-left))
+        max(15px, env(safe-area-inset-right));
       font-size: 12px;
     }
 
@@ -365,6 +384,8 @@ const mobileWelcomeMessage = getWelcomeMessage(350);
   @media (max-width: 480px) {
     .terminal-body {
       padding: 10px;
+      padding-inline: max(10px, env(safe-area-inset-left))
+        max(10px, env(safe-area-inset-right));
       font-size: 11px;
     }
 
@@ -386,6 +407,8 @@ const mobileWelcomeMessage = getWelcomeMessage(350);
   @media (max-width: 360px) {
     .terminal-body {
       padding: 6px;
+      padding-inline: max(6px, env(safe-area-inset-left))
+        max(6px, env(safe-area-inset-right));
       font-size: 10px;
     }
 
@@ -406,6 +429,7 @@ const mobileWelcomeMessage = getWelcomeMessage(350);
 
 <script>
   import {
+    shouldAutoExecute,
     executeCommand,
     getCommandSuggestion,
     getWelcomeMessage,
@@ -419,10 +443,20 @@ const mobileWelcomeMessage = getWelcomeMessage(350);
     getBreakpoint,
     debounce,
   } from "../utils/domHelpers";
+  import {
+    installVisualViewport,
+    getVisualViewportWidth,
+  } from "../utils/viewport";
 
   // Terminal state
   const commandHistory = new CommandHistory();
-  let currentWidth = window.innerWidth;
+  // Source of truth for breakpoint computation — prefers the visible viewport
+  // width when available so a soft keyboard / fold change is reflected.
+  let currentWidth = getVisualViewportWidth();
+  // Tracks IME composition (CJK, accented input). Auto-execute is suppressed
+  // while true so the in-progress composed value cannot accidentally match a
+  // command name.
+  let isComposing = false;
 
   // DOM elements - defer initialization until DOMContentLoaded for faster FCP
   let input: HTMLInputElement;
@@ -454,7 +488,9 @@ const mobileWelcomeMessage = getWelcomeMessage(350);
 
   // Defer resize handler to reduce initial JS execution
   const handleResize = debounce(() => {
-    const newWidth = window.innerWidth;
+    // Use the visible viewport width so the banner re-renders when the soft
+    // keyboard / fold change shrinks the visible area below a breakpoint.
+    const newWidth = getVisualViewportWidth();
     const oldBreakpoint = getBreakpoint(currentWidth);
     const newBreakpoint = getBreakpoint(newWidth);
 
@@ -558,6 +594,42 @@ const mobileWelcomeMessage = getWelcomeMessage(350);
     }
   }
 
+  /**
+   * True when the layout is currently in "mobile mode" — either a coarse
+   * pointer (touch devices) or a viewport at the mobile breakpoint. Read
+   * fresh on every keystroke so DevTools device emulation and foldables
+   * pick up the change immediately.
+   */
+  function isMobileLayout(): boolean {
+    if (typeof window === "undefined") return false;
+    const coarse =
+      typeof window.matchMedia === "function" &&
+      window.matchMedia("(pointer: coarse)").matches;
+    return coarse || getVisualViewportWidth() <= 768;
+  }
+
+  /**
+   * Mobile auto-execute: as soon as the typed input matches a known command
+   * name exactly, run the command without waiting for Enter. Saves mobile
+   * users an extra tap and matches the user's expectation that "the word is
+   * complete → run it".
+   *
+   * Notes:
+   * - Only fires in mobile layout. Desktop users still press Enter so partial
+   *   commands like `help<space>` would not auto-execute prematurely.
+   * - `?` is intentionally excluded — its existing keydown handler runs it
+   *   immediately when typed into an empty input, and we don't want it to
+   *   double-fire after that.
+   * - Skipped during IME composition so CJK / accented input does not race.
+   */
+  function maybeAutoExecute() {
+    const command = shouldAutoExecute(input.value, {
+      isMobile: isMobileLayout(),
+      isComposing,
+    });
+    if (command) handleCommand(command);
+  }
+
   function clearInput() {
     input.value = "";
     commandHistory.reset();
@@ -571,18 +643,46 @@ const mobileWelcomeMessage = getWelcomeMessage(350);
     initializeDOMElements();
     updateCursorPosition(cursor, input, prompt);
 
+    // Sync `--vvh` to the visible viewport before focusing — focusing the
+    // input on touch devices opens the soft keyboard, and we want the layout
+    // to react to that immediately rather than after the first paint.
+    installVisualViewport();
+
     // Focus input
     input.focus();
 
-    // Add event listeners
-    window.addEventListener("resize", handleResize, { passive: true });
+    // Listen on the visual viewport when available so the banner re-renders
+    // when the soft keyboard appears on a foldable / small phone in landscape.
+    // Fall back to `window.resize` for browsers without VisualViewport support.
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener("resize", handleResize, {
+        passive: true,
+      });
+    } else {
+      window.addEventListener("resize", handleResize, { passive: true });
+    }
 
-    terminalBody.addEventListener("click", () => {
+    terminalBody.addEventListener("click", (event) => {
+      // Don't steal focus from anchors inside output (linkified URLs/emails).
+      const target = event.target as HTMLElement | null;
+      if (target?.closest(".terminal-output a")) return;
       input.focus();
     });
 
     input.addEventListener("input", () => {
       updateCursorPosition(cursor, input, prompt);
+      maybeAutoExecute();
+    });
+
+    // Pause auto-execute during IME composition (CJK, accented input). The
+    // composed value is delivered atomically on `compositionend`; we re-check
+    // at that point.
+    input.addEventListener("compositionstart", () => {
+      isComposing = true;
+    });
+    input.addEventListener("compositionend", () => {
+      isComposing = false;
+      maybeAutoExecute();
     });
 
     input.addEventListener("keydown", handleKeyDown);

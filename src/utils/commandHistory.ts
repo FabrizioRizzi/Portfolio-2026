@@ -19,15 +19,17 @@ export class CommandHistory {
   }
 
   /**
-   * Navigate to previous command in history
-   * @returns The previous command, or null if at the beginning
+   * Navigate to previous command in history.
+   *
+   * Does NOT touch `currentInput` — the caller is expected to have invoked
+   * `saveCurrentInput` first (Terminal.astro does this on the ArrowUp branch).
+   * Preserving the saved draft is what lets `navigateDown` return the user's
+   * in-progress text after they've walked all the way back.
+   *
+   * @returns The previous command, or null if already at the beginning
    */
   navigateUp(): string | null {
     if (this.currentIndex < this.history.length - 1) {
-      if (this.currentIndex === -1) {
-        // Save current input before navigating history
-        this.currentInput = "";
-      }
       this.currentIndex++;
       return this.history[this.currentIndex];
     }

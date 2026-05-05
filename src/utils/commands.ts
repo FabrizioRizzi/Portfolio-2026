@@ -207,7 +207,7 @@ export function executeCommand(command: string, width: number): CommandOutput {
   }
 }
 
-export const AVAILABLE_COMMANDS = [
+export const AVAILABLE_COMMANDS: readonly string[] = [
   "help",
   "about",
   "skills",
@@ -221,4 +221,49 @@ export function getCommandSuggestion(partial: string): string | null {
     AVAILABLE_COMMANDS.find((cmd) => cmd.startsWith(partial.toLowerCase())) ??
     null
   );
+}
+
+// Set lookup for the mobile auto-execute path. Lowercased once at module load
+// so each keystroke check is a constant-time operation.
+const KNOWN_COMMANDS_SET: ReadonlySet<string> = new Set(
+  AVAILABLE_COMMANDS.map((name) => name.toLowerCase())
+);
+
+/**
+ * Decide whether a typed input value corresponds to a complete, known command
+ * that should be auto-executed on mobile.
+ *
+ * Returns the normalized command name to run, or `null` when the input is
+ * empty, is the `?` shortcut (handled separately by its keydown handler), or
+ * does not exactly match any entry in `AVAILABLE_COMMANDS`.
+ *
+ * Pure / side-effect free — easy to unit test without a DOM.
+ */
+export function detectCompletedCommand(value: string): string | null {
+  const candidate = value.trim().toLowerCase();
+  if (!candidate || candidate === "?") return null;
+  return KNOWN_COMMANDS_SET.has(candidate) ? candidate : null;
+}
+
+export interface AutoExecuteContext {
+  /** True when the layout is currently in mobile mode (coarse pointer or ≤768px). */
+  isMobile: boolean;
+  /** True while an IME composition session is active (CJK, accented input, etc.). */
+  isComposing: boolean;
+}
+
+/**
+ * Combined policy for the mobile auto-execute path. Returns the command to run
+ * or `null` to do nothing.
+ *
+ * Extracted from `Terminal.astro` so the desktop guard, IME guard, and
+ * exact-match logic are all exercisable in unit tests without a DOM.
+ */
+export function shouldAutoExecute(
+  value: string,
+  context: AutoExecuteContext
+): string | null {
+  if (context.isComposing) return null;
+  if (!context.isMobile) return null;
+  return detectCompletedCommand(value);
 }
